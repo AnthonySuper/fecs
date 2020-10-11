@@ -14,27 +14,31 @@ namespace fecs {
 
   public:
     template<std::same_as<T> T2>
-    bool hasElement(EntityId id) const;
+    inline bool hasElement(EntityId id) const;
 
     template<std::same_as<T> T2>
-    std::optional<ElementType> getSafe(EntityId id) const;
+    inline std::optional<ElementType> getSafe(EntityId id) const;
 
     template<std::same_as<T> T2>
-    ElementType getUnsafe(EntityId id) const;
+    inline ElementType getUnsafe(EntityId id) const;
 
     template<std::same_as<T> T2>
-    void addComponent(EntityId id, const T2& comp);
+    inline void addComponent(EntityId id, const T2& comp);
 
     template<std::same_as<T> T2>
-    void moveComponent(EntityId id, T2&& c);
+    inline void moveComponent(EntityId id, T2&& c);
 
     template<std::same_as<T> T2>
-    void removeComponent(EntityId id);
+    inline void removeComponent(EntityId id);
+
+    inline void resizeToFit(EntityId id) {
+      elements.resize(std::max(elements.size(), id + 1));
+    }
   };
 
   template<typename T>
   template<std::same_as<T> T2>
-  bool vector_store<T>::hasElement(EntityId id) const {
+  inline bool vector_store<T>::hasElement(EntityId id) const {
     if(id >= elements.size()) {
       return false;
     }
@@ -44,7 +48,7 @@ namespace fecs {
 
   template<typename T>
   template<std::same_as<T> T2>
-  std::optional<T> vector_store<T>::getSafe(EntityId id) const {
+  inline std::optional<T> vector_store<T>::getSafe(EntityId id) const {
     if(id >= elements.size()) {
       return std::nullopt;
     }
@@ -53,13 +57,13 @@ namespace fecs {
 
   template<typename T>
   template<std::same_as<T> T2>
-  T vector_store<T>::getUnsafe(EntityId id) const {
+  inline T vector_store<T>::getUnsafe(EntityId id) const {
     return *(elements.at(id));
   }
 
   template<typename T>
   template<std::same_as<T> T2>
-  void vector_store<T>::addComponent(EntityId id, const T2& comp) {
+  inline void vector_store<T>::addComponent(EntityId id, const T2& comp) {
     if(elements.size() <= id) {
       elements.resize(id + 1);
     }
@@ -68,7 +72,7 @@ namespace fecs {
 
   template<typename T>
   template<std::same_as<T> T2>
-  void vector_store<T>::moveComponent(EntityId id, T2&& t2) {
+  inline void vector_store<T>::moveComponent(EntityId id, T2&& t2) {
     if(elements.size() <= id) {
       elements.resize(id + 1);
     }
@@ -78,7 +82,7 @@ namespace fecs {
 
   template<typename T>
   template<std::same_as<T> T2>
-  void vector_store<T>::removeComponent(EntityId id) {
+  inline void vector_store<T>::removeComponent(EntityId id) {
     if(elements.size() <= id) {
       return;
     }

@@ -14,6 +14,7 @@ namespace fecs {
   public:
 
     EntityId newEntity() {
+      (Stores::resizeToFit(nextId), ...);
       return ++nextId;
     }
 
@@ -107,10 +108,10 @@ namespace fecs {
         EntityId id,
         const Variant& variant
     ) {
-      if(std::holds_alternative<Type>(variant)) {
+      if(const auto val = std::get_if<Type>(&variant)) {
         this->template setMapResult<Type>(
             id,
-            std::get<Type>(variant)
+            *val
         );
       }
     }
@@ -135,8 +136,8 @@ namespace fecs {
   inline void mapEntities(World& w, Function f) {
     for(EntityId i = 0; i < w.maxId(); ++i) {
       if((w.template hasAllElements<Args...>(i))) {
-        w.template setMapResult<typename std::invoke_result_t<Function, Args...>>
-          (i, std::invoke(f, w.template getUnsafe<Args>(i)...));
+        w.template setMapResult<decltype(f(w.template getUnsafe<Args>(i)...))>
+          (i, f(w.template getUnsafe<Args>(i)...));
       }
     }
   }
@@ -153,7 +154,7 @@ namespace fecs {
   inline void mapEntities(const World& w, Function f) {
     for(EntityId i = 0; i < w.maxId(); ++i) {
       if((w.template hasAllElements<Args...>(i))) {
-        std::invoke(f, w.template getUnsafe<Args>(i)...);
+        f(w.template getUnsafe<Args>(i)...);
       }
     }
   }

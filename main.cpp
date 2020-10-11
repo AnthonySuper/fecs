@@ -21,24 +21,26 @@ int main() {
   // static_assert(fecs::concepts::MapResultContainer<std::tuple<int, std::string>, Foo>);
   auto printEach = [&]() {
     fecs::mapEntities<int, float>(w, [&](int i, float f) -> void {
-        std::cout << i << " " << f << std::endl;
+        std::cout << i << " " << f << "\n";
     });
   };
 
-  for(int i = 0; i < 10; ++i) {
+  for(int i = 0; i < 20; ++i) {
     auto entity = w.newEntity();
     w.addComponent<int>(entity, i);
+    w.addComponent<float>(entity, i);
   }
 
-  printEach();
-  std::cout << std::endl;
 
-  fecs::mapEntities<int>(w, [=](int i) -> std::variant<int, float> {
+  fecs::mapEntities<int>(w, [=](int i) -> std::variant<std::optional<int>, float> {
       if(i % 2 == 0) { 
         return {i * 1.0f};
       }
+      else if (i % 3 == 0) {
+        return {std::optional<int>{i + 10}};
+      }
       else {
-        return {i + 10};
+        return { std::nullopt };
       }
   });
 

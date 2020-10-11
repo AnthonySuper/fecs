@@ -21,6 +21,11 @@ namespace fecs {
       { c.template getUnsafe<Component>(id) } -> std::convertible_to<Component>;
     };
 
+    template<typename Container>
+    concept ResizeToFitContianer = requires(Container& c, EntityId id) {
+      { c.resizeToFit(id) };
+    };
+
     template<typename Container, typename Component>
     concept RemoveContainer = requires(Container& c, EntityId id) {
       { c.template removeComponent<Component>(id) };
