@@ -129,8 +129,25 @@ In order for this to be cooler, I want:
 
 1. Better support for "partial" stores: a store that does not allow deleting may be useful for an event system of some kind, for example
 2. Optimization checks
-3. A "sparse" store based on `std::unordered_map` (or some better hash library)
-4. Better error messages (concepts help a bit here but they're still... not super great, frankly)
-5. An actual test suite
+3. Better error messages (concepts help a bit here but they're still... not super great, frankly)
+4. A more robust test suite
+5. The ability to `unsafeGet` an `std::variant`. 
+   I can't make the templated types seem to work, but the basic idea is fairly simple: if you run something like:
+      ```cpp
+        fecs::mapEntities<std::variant<int, float>>(world, [](const std::variant<int, float>& variant) { /* stuff here */ });
+      ```
+  It should look for an `int` component, and if that's not found, a `float` component, and if neither is found, skip over the entity as it is not applicable to the mapping function.
+6. An automatic concurrency generator.
+   In principle, if you give me a set of mapping functions, I can determine *exactly* what they might read or modify based on their arguments and return type.
+   If all of these functions can be called in any order (for example, "update animation components to the current frame", "update physics bodies to the current frame", and "update particle effects to the current frame"), we *should* be able to use some horrible C++ template magic to derive an "optimally concurrent" mapper, which knows what things it can run concurrently, knows what things it has to run sequentially, and automatically uses whatever thread-pooling library you give it to do these things concurrently.
+   Note that even if it turns out to be some stupid O(2^n) algorithm to find an *optimal* path, even finding a *pretty good* path gives you *massive conurrency for very little effort*, which is increasingly useful in the era of core wars.
+7. Some sort of "cache-local" store that stores *multiple components together* transparently.
+   This would improve cache performance, but once again the templates are very tricky to get right (you'll wind up needing a vector of optional tuples of optional values, which... gross)
+   Still, since cache is king, it's worth the awful effort.
+8. Better docs!
+   Doxygen *really* does not like c++20 `requires` statements, which is something I unfortunately don't know how to fix.
 
+## Special Thanks
 
+This library wholesale steals all of its ideas from the *absolutely excellent*, *brain-expanding* [apecs](https://github.com/jonascarpay/apecs) by [Jonas Carpay](https://github.com/jonascarpay).
+Check it out, and give him massive kudos.

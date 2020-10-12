@@ -7,38 +7,44 @@
 namespace fecs {
 
   template<typename T>
+  /**
+   * A store backed by a vector of optional values.
+   * This makes it very fast (iterating through it generally optimizes out to incrementing a pointer) but it uses a lot of memory.
+   */
   class vector_store {
 
     using ElementType = T;
     std::vector<std::optional<ElementType>> elements;
 
   public:
-    template<std::same_as<T> T2>
-    inline bool hasElement(EntityId id) const;
+    template<std::same_as<T> T2 = T>
+    inline bool hasComponent(EntityId id) const;
 
-    template<std::same_as<T> T2>
+    template<std::same_as<T> T2 = T>
     inline std::optional<ElementType> getSafe(EntityId id) const;
 
-    template<std::same_as<T> T2>
+    template<std::same_as<T> T2 = T>
     inline ElementType getUnsafe(EntityId id) const;
 
-    template<std::same_as<T> T2>
-    inline void addComponent(EntityId id, const T2& comp);
+    template<std::same_as<T> T2 = T>
+    inline void addComponent(EntityId id, T2 comp);
 
-    template<std::same_as<T> T2>
+    template<std::same_as<T> T2 = T>
     inline void moveComponent(EntityId id, T2&& c);
 
-    template<std::same_as<T> T2>
+    template<std::same_as<T> T2 = T>
     inline void removeComponent(EntityId id);
 
     inline void resizeToFit(EntityId id) {
       elements.resize(std::max(elements.size(), id + 1));
     }
+
+    auto operator<=>(const vector_store&) const = default;
   };
 
   template<typename T>
   template<std::same_as<T> T2>
-  inline bool vector_store<T>::hasElement(EntityId id) const {
+  inline bool vector_store<T>::hasComponent(EntityId id) const {
     if(id >= elements.size()) {
       return false;
     }
@@ -63,11 +69,11 @@ namespace fecs {
 
   template<typename T>
   template<std::same_as<T> T2>
-  inline void vector_store<T>::addComponent(EntityId id, const T2& comp) {
+  inline void vector_store<T>::addComponent(EntityId id, T2 comp) {
     if(elements.size() <= id) {
       elements.resize(id + 1);
     }
-    elements.at(id) = comp;
+    elements.at(id) = std::move(comp);
   }
 
   template<typename T>
@@ -89,8 +95,4 @@ namespace fecs {
     elements.at(id) = std::nullopt;
   }
 
-  static_assert(concepts::QueryContainer<vector_store<int>, int>);
-  static_assert(concepts::GetSafeContainer<vector_store<int>, int>);
-  static_assert(concepts::GetUnsafeContainer<vector_store<int>, int>);
-  static_assert(concepts::MoveContainer<vector_store<int>, int>);
 }

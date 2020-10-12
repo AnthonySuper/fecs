@@ -5,38 +5,90 @@
 #include <functional>
 #include <tuple>
 #include <variant>
+#include <stdexcept>
 
 namespace fecs {
   template<typename ...Stores>
+  /**
+   * A world in fecs contains multiple components, and entities.
+   *
+   * By default all fecs stores have *value semantics*, meaning you can copy this around like normal.
+   * This is extremely useful if you want to implement save-states or some other such thing!
+   */
   class world : private Stores... {
-    EntityId nextId = 0;
+    EntityId lastId = 0;
 
   public:
 
-    EntityId newEntity() {
-      (Stores::resizeToFit(nextId), ...);
-      return ++nextId;
+    /**
+     * Get a new entity you can do stuff with.
+     * Note: Entities *can not be deleted* so you'll "quasi-leak" memory as time goes on.
+     * TODO: Some sort of entity recycling? Is that doable without destroying performance?
+     */
+    inline EntityId newEntity() {
+      (Stores::resizeToFit(lastId), ...);
+      return lastId++;
     }
 
-    EntityId maxId() const { return nextId; }
+    /**
+     * Get the maximum entity id.
+     * Useful for iteration.
+     *
+     * TODO: make this something you can iterate via ranges?
+     */
+    inline EntityId maxId() const { return lastId + 1; }
+    auto operator<=>(const world&) const = default;
 
-    using Stores::hasElement...;
+    using Stores::hasComponent...;
     using Stores::getSafe...;
     using Stores::getUnsafe...;
     using Stores::addComponent...;
     using Stores::moveComponent...;
     using Stores::removeComponent...;
 
+    /**
+     * Section: Specializations.
+     * These let you have a much nicer mapping interface.
+     */
+
+    template<typename T, typename F = typename T::value_type>
+      requires 
+        concepts::GetSafeContainer<world, F> &&
+        std::same_as<T, std::optional<F>>
+    /**
+     * You can get an optional for *any* component as we can always return nullopt
+     */
+    inline bool hasComponent(EntityId id) const {
+      return true;
+    }
+
+    template<typename T, typename F = typename T::value_type>
+      requires
+        concepts::GetSafeContainer<world, F> &&
+        std::same_as<T, std::optional<F>>
+    inline std::optional<F> getUnsafe(EntityId id) const {
+      return this->template getSafe<F>(id);
+    }
+
     template<typename ...Elements>
       requires (concepts::QueryContainer<world, Elements> && ...)
-    inline bool hasAllElements(EntityId i) const {
-      return (this->template hasElement<Elements>(i) &&  ...);
+    /**
+     * Query function that ensures we have *all* the elements in a list.
+     */
+    inline bool hasAllComponents(EntityId i) const {
+      return (this->template hasComponent<Elements>(i) &&  ...);
     }
 
     template<typename T, std::same_as<typename T::value_type> F>
       requires 
         concepts::AddContainer<world, F> &&
         concepts::RemoveContainer<world, F>
+    /**
+     * If the result of the map is an optional value, the following semantics are followed:
+     *
+     * 1. If the optional is empty, *delete* from the underlying component store
+     * 2. If the optional has a value, *add or replace* to the underlying component store.
+     */
     inline void setMapResult(EntityId id, const std::optional<F>& opt) {
       if(opt) {
         this->template addComponent<F>(id, *opt);
@@ -54,7 +106,6 @@ namespace fecs {
       requires concepts::AddContainer<world, T>
     inline void setMapResult(EntityId id, const F& r) {
       this->template addComponent<T>(id, r);
- 
     }
 
     /**
@@ -135,7 +186,7 @@ namespace fecs {
       concepts::ContainerMapFunction<World, Function, Args...>
   inline void mapEntities(World& w, Function f) {
     for(EntityId i = 0; i < w.maxId(); ++i) {
-      if((w.template hasAllElements<Args...>(i))) {
+      if((w.template hasAllComponents<Args...>(i))) {
         w.template setMapResult<decltype(f(w.template getUnsafe<Args>(i)...))>
           (i, f(w.template getUnsafe<Args>(i)...));
       }
@@ -153,7 +204,7 @@ namespace fecs {
   > requires concepts::ContainerVoidMapFunction<World, Function, Args...>
   inline void mapEntities(const World& w, Function f) {
     for(EntityId i = 0; i < w.maxId(); ++i) {
-      if((w.template hasAllElements<Args...>(i))) {
+      if((w.template hasAllComponents<Args...>(i))) {
         f(w.template getUnsafe<Args>(i)...);
       }
     }

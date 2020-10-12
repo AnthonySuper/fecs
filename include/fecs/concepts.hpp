@@ -8,7 +8,7 @@ namespace fecs {
   namespace concepts {
     template<typename Container, typename Component>
     concept QueryContainer = requires(const Container& c, EntityId id) {
-      { c.template hasElement<Component>(id) } -> std::convertible_to<bool>;
+      { c.template hasComponent<Component>(id) } -> std::convertible_to<bool>;
     };
 
     template<typename Container, typename Component>
@@ -32,7 +32,7 @@ namespace fecs {
     };
 
     template<typename Container, typename Component>
-    concept AddContainer = requires(Container& c, EntityId id, const Component& comp) {
+    concept AddContainer = requires(Container& c, EntityId id, Component comp) {
       { c.template addComponent<Component>(id, comp) };
     };
 

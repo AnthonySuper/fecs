@@ -3,6 +3,7 @@
 #include <variant>
 #include "fecs/vector_store.hpp"
 #include "fecs/concepts.hpp"
+#include "fecs/unordered_map_store.hpp"
 #include "fecs/world.hpp"
 
 using Foo = fecs::world<fecs::vector_store<int>, fecs::vector_store<float>>;
@@ -18,19 +19,20 @@ int main() {
   static_assert(
       fecs::concepts::MapResultContainer<std::variant<int, float>, Foo>
   );
-  // static_assert(fecs::concepts::MapResultContainer<std::tuple<int, std::string>, Foo>);
+
   auto printEach = [&]() {
     fecs::mapEntities<int, float>(w, [&](int i, float f) -> void {
         std::cout << i << " " << f << "\n";
     });
   };
 
-  for(int i = 0; i < 20; ++i) {
+  for(int i = 0; i < 2000000; ++i) {
     auto entity = w.newEntity();
     w.addComponent<int>(entity, i);
-    w.addComponent<float>(entity, i);
+    if(i % 2 == 0) { 
+      w.addComponent<float>(entity, i);
+    }
   }
-
 
   fecs::mapEntities<int>(w, [=](int i) -> std::variant<std::optional<int>, float> {
       if(i % 2 == 0) { 
